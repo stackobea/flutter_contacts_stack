@@ -1,0 +1,32 @@
+name: flutter_contacts_stack
+description: "A new Flutter project."
+version: 0.0.1
+homepage: https://github.com/stackobea/flutter_contacts_stack
+repository: https://github.com/stackobea/flutter_contacts_stack
+issue_tracker: https://github.com/stackobea/flutter_contacts_stack/issues
+documentation: https://github.com/stackobea/flutter_contacts_stack
+
+environment:
+  sdk: ^3.8.1
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+
+  plugin:
+    platforms:
+      android:
+        package: com.stackobea.flutter_contacts_stack
+        pluginClass: ContactsStackPlugin
+      ios:
+        pluginClass: ContactsStackPlugin
+
