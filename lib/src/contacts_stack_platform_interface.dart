@@ -1,4 +1,4 @@
-import 'package:flutter_contacts_stack/src/contact_model.dart';
+import 'package:flutter_contacts_stack/flutter_contacts_stack.dart';
 import 'package:flutter_contacts_stack/src/method_channel_contacts_stack.dart';
 
 abstract class ContactsStackPlatform {
@@ -10,18 +10,16 @@ abstract class ContactsStackPlatform {
     _instance = instance;
   }
 
-  Future<List<Contact>> fetchContacts({
-    bool withProperties = false,
-    bool withPhoto = false,
-    int? batchSize,
-    int? offset,
-  });
+  Future<List<Contact>> fetchContacts(ContactFetchOptions options);
 
-  Stream<List<Contact>> streamContacts({
-    bool withProperties = false,
-    bool withPhoto = false,
-    int batchSize = 100,
-  });
+  // Future<List<Contact>> fetchContacts({
+  //   bool withProperties = false,
+  //   bool withPhoto = false,
+  //   int? batchSize,
+  //   int? offset,
+  // });
+
+  Stream<List<Contact>> streamContacts(ContactFetchOptions options);
 
   Future<Contact?> getContactById(String id);
 
@@ -36,4 +34,6 @@ abstract class ContactsStackPlatform {
   Future<String> exportToVCard(Contact contact);
 
   Future<Contact?> importFromVCard(String vCardString);
+
+
 }

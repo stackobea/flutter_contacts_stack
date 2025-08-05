@@ -1,47 +1,65 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
-import 'package:flutter_contacts_stack/src/contact_model.dart';
+import 'package:flutter_contacts_stack/flutter_contacts_stack.dart';
 import 'package:flutter_contacts_stack/src/contacts_stack_platform_interface.dart';
+import 'package:flutter_contacts_stack/src/models/contact_model.dart';
 
 class MethodChannelContactsStack extends ContactsStackPlatform {
   static const _channel = MethodChannel('contacts_stack');
 
+  // @override
+  // Future<List<Contact>> fetchContacts({
+  //   bool withProperties = false,
+  //   bool withPhoto = false,
+  //   int? batchSize,
+  //   int? offset,
+  // }) async {
+  //   final result = await _channel.invokeMethod<List<dynamic>>('fetchContacts', {
+  //     'withProperties': withProperties,
+  //     'withPhoto': withPhoto,
+  //     'batchSize': batchSize,
+  //     'offset': offset,
+  //   });
+  //
+  //   return result
+  //           ?.map((e) => Contact.fromMap(Map<String, dynamic>.from(e)))
+  //           .toList() ??
+  //       [];
+  // }
+
   @override
-  Future<List<Contact>> fetchContacts({
-    bool withProperties = false,
-    bool withPhoto = false,
-    int? batchSize,
-    int? offset,
-  }) async {
-    final result = await _channel.invokeMethod<List<dynamic>>('fetchContacts', {
-      'withProperties': withProperties,
-      'withPhoto': withPhoto,
-      'batchSize': batchSize,
-      'offset': offset,
+  Future<List<Contact>> fetchContacts(ContactFetchOptions options) async {
+    final result = await _channel.invokeMethod<String>('fetchContacts', {
+      'withProperties': options.withProperties,
+      'withPhoto': options.withPhoto,
+      'batchSize': options.batchSize,
+      'offset': options.offset,
     });
 
-    return result
-            ?.map((e) => Contact.fromMap(Map<String, dynamic>.from(e)))
-            .toList() ??
-        [];
+    if (result == null) return [];
+
+    final decoded = jsonDecode(result) as List;
+    return decoded
+        .map((e) => Contact.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   @override
-  Stream<List<Contact>> streamContacts({
-    bool withProperties = false,
-    bool withPhoto = false,
-    int batchSize = 100,
-  }) async* {
+  Stream<List<Contact>> streamContacts(ContactFetchOptions options) async* {
     int offset = 0;
     while (true) {
       final batch = await fetchContacts(
-        withProperties: withProperties,
-        withPhoto: withPhoto,
-        batchSize: batchSize,
-        offset: offset,
+        ContactFetchOptions(
+          withProperties: options.withProperties,
+          withPhoto: options.withPhoto,
+          batchSize: options.batchSize,
+          offset: options.offset,
+        ),
       );
       if (batch.isEmpty) break;
       yield batch;
-      offset += batchSize;
+      offset += options.batchSize ?? 0;
     }
   }
 
