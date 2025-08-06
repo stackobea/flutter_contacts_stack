@@ -1,10 +1,7 @@
 name: flutter_contacts_stack
 description: "A new Flutter project."
 version: 0.0.1
-homepage: https://github.com/stackobea/flutter_contacts_stack
-repository: https://github.com/stackobea/flutter_contacts_stack
-issue_tracker: https://github.com/stackobea/flutter_contacts_stack/issues
-documentation: https://github.com/stackobea/flutter_contacts_stack
+homepage:
 
 environment:
   sdk: ^3.8.1
@@ -21,6 +18,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+
 flutter:
 
   plugin:
@@ -30,4 +28,3 @@ flutter:
         pluginClass: ContactsStackPlugin
       ios:
         pluginClass: ContactsStackPlugin
-

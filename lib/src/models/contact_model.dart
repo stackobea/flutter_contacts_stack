@@ -1,5 +1,3 @@
-import 'dart:nativewrappers/_internal/vm/lib/typed_data_patch.dart';
-
 class Contact {
   final String? id;
   final String? displayName;
@@ -12,7 +10,7 @@ class Contact {
   final List<String>? emails;
   final String? company;
   final String? jobTitle;
-  final Uint8List? photo;
+  final String? photo;
   final String? note;
   final List<String>? postalAddresses;
 

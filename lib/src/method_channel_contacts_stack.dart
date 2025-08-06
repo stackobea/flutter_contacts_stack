@@ -1,12 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts_stack/flutter_contacts_stack.dart';
 import 'package:flutter_contacts_stack/src/contacts_stack_platform_interface.dart';
 import 'package:flutter_contacts_stack/src/models/contact_model.dart';
 
 class MethodChannelContactsStack extends ContactsStackPlatform {
-  static const _channel = MethodChannel('contacts_stack');
+  static const _channel = MethodChannel('flutter_contacts_stack');
 
   // @override
   // Future<List<Contact>> fetchContacts({
@@ -30,19 +31,18 @@ class MethodChannelContactsStack extends ContactsStackPlatform {
 
   @override
   Future<List<Contact>> fetchContacts(ContactFetchOptions options) async {
-    final result = await _channel.invokeMethod<String>('fetchContacts', {
+    final result = await _channel.invokeMethod<List<dynamic>>('fetchContacts', {
       'withProperties': options.withProperties,
       'withPhoto': options.withPhoto,
       'batchSize': options.batchSize,
       'offset': options.offset,
     });
 
-    if (result == null) return [];
-
-    final decoded = jsonDecode(result) as List;
-    return decoded
-        .map((e) => Contact.fromMap(Map<String, dynamic>.from(e)))
+    final contacts = (result ?? [])
+        .map((item) => Contact.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+
+    return contacts;
   }
 
   @override

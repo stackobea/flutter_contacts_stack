@@ -1,5 +1,4 @@
 import 'package:flutter_contacts_stack/flutter_contacts_stack.dart';
-import 'package:flutter_contacts_stack/src/method_channel_contacts_stack.dart';
 
 abstract class ContactsStackPlatform {
   static ContactsStackPlatform _instance = MethodChannelContactsStack();

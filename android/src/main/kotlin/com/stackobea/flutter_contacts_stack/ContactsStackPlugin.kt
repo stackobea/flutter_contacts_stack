@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
 import android.util.Base64
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -25,11 +26,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.*
-
-enum class AccountType {
-    SIM, GOOGLE, WHATSAPP, PHONE, OTHER
-}
-
+import androidx.core.net.toUri
 
 
 class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -63,8 +60,26 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 result.success(null)
             }
 
+
+            "fetchContacts" -> {
+                val withProperties = call.argument<Boolean>("withProperties") ?: false
+                val withPhoto = call.argument<Boolean>("withPhoto") ?: false
+                val batchSize = call.argument<Int>("batchSize") ?: 100
+                val offset = call.argument<Int>("offset") ?: 0
+                val contacts = fetchContacts(
+                    withProperties = withProperties,
+                    withPhoto = withPhoto,
+                    batchSize = batchSize,
+                    offset = offset
+                )
+                result.success(contacts)
+            }
+
             "getContactsLite" -> {
-                result.success(fetchContacts(false, false, 1000, 0))
+                result.success(fetchContacts(
+                    withProperties = false,
+                    withPhoto = false, batchSize = 1000, offset = 0
+                ))
             }
 
             "getContactsFull" -> {
@@ -221,20 +236,20 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 output.close()
                 true
             } else false
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
 
     private fun importVCard(path: String): Boolean {
         return try {
-            val uri = Uri.parse(path)
+            val uri = path.toUri()
             val intent = Intent("com.android.contacts.action.IMPORT_VCARD")
             intent.setDataAndType(uri, "text/x-vcard")
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             context.startActivity(intent)
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -301,33 +316,43 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun getMergeSuggestions(): List<Map<String, String>> {
-        val contacts = fetchContacts(true, false, 1000, 0)
+        val contacts = fetchContacts(
+            withProperties = true,
+            withPhoto = false,
+            batchSize = 1000,
+            offset = 0
+        )
         val suggestions = mutableListOf<Map<String, String>>()
         val seen = mutableSetOf<String>()
+
         for (i in contacts.indices) {
             val ci = contacts[i]
             val name1 = ci["displayName"] as? String ?: continue
-            val phones1 = ci["phones"] as? List<String> ?: continue
+            val phones1 = ci["phones"] as? List<*> ?: continue
+
             for (j in i + 1 until contacts.size) {
                 val cj = contacts[j]
                 val name2 = cj["displayName"] as? String ?: continue
-                val phones2 = cj["phones"] as? List<String> ?: continue
+                val phones2 = cj["phones"] as? List<*> ?: continue
+
                 if (name1 == name2 || phones1.any { phones2.contains(it) }) {
-                    val key = listOf(ci["id"], cj["id"]).sorted().joinToString("-")
+                    val id1 = ci["id"]?.toString() ?: continue
+                    val id2 = cj["id"]?.toString() ?: continue
+                    val key = listOf(id1, id2).sorted().joinToString("-")
+
                     if (!seen.contains(key)) {
                         suggestions.add(
-                            mapOf(
-                                "id1" to ci["id"].toString(),
-                                "id2" to cj["id"].toString()
-                            )
+                            mapOf("id1" to id1, "id2" to id2)
                         )
                         seen.add(key)
                     }
                 }
             }
         }
+
         return suggestions
     }
+
 
     private fun getDeletedContacts(): List<Map<String, String>> {
         val deleted = mutableListOf<Map<String, String>>()
@@ -353,11 +378,9 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         return deleted
     }
 
-    // Existing insertContact, deleteContact, fetchContacts, etc. remain unchanged
-
 
     private fun insertContact(data: Map<String, Any?>?): Boolean {
-        if (data == null || context == null) return false
+        if (data == null) return false
         val ops = ArrayList<ContentProviderOperation>()
 
         val rawContactInsertIndex = ops.size
@@ -424,7 +447,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
 
         try {
-            context!!.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
+            context.contentResolver.applyBatch(ContactsContract.AUTHORITY, ops)
             return true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -437,7 +460,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             val uri = ContactsContract.RawContacts.CONTENT_URI
             val selection = "${ContactsContract.RawContacts.CONTACT_ID} = ?"
             val selectionArgs = arrayOf(contactId)
-            val rows = context!!.contentResolver.delete(uri, selection, selectionArgs)
+            val rows = context.contentResolver.delete(uri, selection, selectionArgs)
             return rows > 0
         } catch (e: Exception) {
             e.printStackTrace()
@@ -451,8 +474,9 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         batchSize: Int,
         offset: Int
     ): List<Map<String, Any?>> {
+
         val contacts = mutableListOf<Map<String, Any?>>()
-        val resolver: ContentResolver = context!!.contentResolver
+        val resolver: ContentResolver = context.contentResolver
 
         val projection = arrayOf(
             ContactsContract.Contacts._ID,
@@ -496,7 +520,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun fetchPhones(contactId: String): List<String> {
         val phones = mutableListOf<String>()
-        val resolver = context!!.contentResolver
+        val resolver = context.contentResolver
         val cursor = resolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
             arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
@@ -514,7 +538,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun fetchEmails(contactId: String): List<String> {
         val emails = mutableListOf<String>()
-        val resolver = context!!.contentResolver
+        val resolver = context.contentResolver
         val cursor = resolver.query(
             ContactsContract.CommonDataKinds.Email.CONTENT_URI,
             arrayOf(ContactsContract.CommonDataKinds.Email.ADDRESS),
@@ -531,7 +555,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun fetchPhoto(contactId: String): ByteArray? {
-        val resolver = context!!.contentResolver
+        val resolver = context.contentResolver
         val photoUri = ContactsContract.Contacts.CONTENT_URI.buildUpon().appendPath(contactId)
             .appendPath(ContactsContract.Contacts.Photo.CONTENT_DIRECTORY).build()
         val cursor = resolver.query(
@@ -550,10 +574,15 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun getContactById(id: String): Map<String, Any?>? {
-        return fetchContacts(true, true, 1, 0).firstOrNull { it["id"] == id }
+        return fetchContacts(withProperties = true, withPhoto = true, batchSize = 1, offset = 0).firstOrNull { it["id"] == id }
     }
 
 }
+
+
+
+
+
 
 
 
