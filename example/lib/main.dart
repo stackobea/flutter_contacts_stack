@@ -54,7 +54,7 @@ class _ContactHomePageState extends State<ContactHomePage> {
           withPhoto: true,
           withProperties: true,
           offset: 0,
-          batchSize: 100,
+          batchSize: 1000,
         ),
       );
 
@@ -71,7 +71,13 @@ class _ContactHomePageState extends State<ContactHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Contacts Stack'), centerTitle: true),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0.0,
+
+        title: const Text('Contacts Stack'),
+        centerTitle: true,
+      ),
       body: ListView.builder(
         itemCount: contacts.length,
         shrinkWrap: true,
@@ -128,30 +134,31 @@ class _ContactHomePageState extends State<ContactHomePage> {
               );
             },
           ),
-
           SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                contact.displayName ?? "No-Name",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  contact.displayName ?? "No-Name",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
 
-              Text(
-                contact.phones!.isNotEmpty ? contact.phones!.first : 'Null',
+                Text(
+                  contact.phones!.isNotEmpty ? contact.phones!.first : 'Null',
 
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w700,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
