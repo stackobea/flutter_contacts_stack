@@ -1,7 +1,10 @@
 name: flutter_contacts_stack
-description: "A new Flutter project."
-version: 0.0.1
-homepage:
+description: "A powerful and high-performance Flutter plugin to access, modify, and manage device contacts across Android and iOS."
+version: 1.0.0
+homepage: https://github.com/stackobea/flutter_contacts_stack
+repository: https://github.com/stackobea/flutter_contacts_stack
+issue_tracker: https://github.com/stackobea/flutter_contacts_stack/issues
+documentation: https://github.com/stackobea/flutter_contacts_stack
 
 environment:
   sdk: ^3.8.1

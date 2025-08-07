@@ -1,33 +1,35 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts_stack/flutter_contacts_stack.dart';
-import 'package:flutter_contacts_stack/src/contacts_stack_platform_interface.dart';
-import 'package:flutter_contacts_stack/src/models/contact_model.dart';
 
 class MethodChannelContactsStack extends ContactsStackPlatform {
-  static const _channel = MethodChannel('flutter_contacts_stack');
+  static const MethodChannel _channel = MethodChannel('flutter_contacts_stack');
 
-  // @override
-  // Future<List<Contact>> fetchContacts({
-  //   bool withProperties = false,
-  //   bool withPhoto = false,
-  //   int? batchSize,
-  //   int? offset,
-  // }) async {
-  //   final result = await _channel.invokeMethod<List<dynamic>>('fetchContacts', {
-  //     'withProperties': withProperties,
-  //     'withPhoto': withPhoto,
-  //     'batchSize': batchSize,
-  //     'offset': offset,
-  //   });
-  //
-  //   return result
-  //           ?.map((e) => Contact.fromMap(Map<String, dynamic>.from(e)))
-  //           .toList() ??
-  //       [];
-  // }
+  @override
+  void startListeningToContactChanges(Function(List<Contact>) onChanged) {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onContactChanged') {
+        final List<dynamic>? res = call.arguments as List<dynamic>?;
+
+        final contacts = (res ?? [])
+            .map((item) => Contact.fromMap(Map<String, dynamic>.from(item)))
+            .toList();
+
+        onChanged(contacts);
+      }
+    });
+  }
+
+  @override
+  Future<bool> requestPermission() async {
+    try {
+      final result = await _channel.invokeMethod<bool>('requestPermission');
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Permission request failed: $e');
+      return false;
+    }
+  }
 
   @override
   Future<List<Contact>> fetchContacts(ContactFetchOptions options) async {
@@ -48,18 +50,31 @@ class MethodChannelContactsStack extends ContactsStackPlatform {
   @override
   Stream<List<Contact>> streamContacts(ContactFetchOptions options) async* {
     int offset = 0;
+
     while (true) {
+      // Fetch contacts using current offset and batch size
       final batch = await fetchContacts(
         ContactFetchOptions(
           withProperties: options.withProperties,
           withPhoto: options.withPhoto,
           batchSize: options.batchSize,
-          offset: options.offset,
+          offset: offset, // ❗️Use updated offset here instead of options.offset
         ),
       );
+
+      // Break the loop if no more contacts are returned
       if (batch.isEmpty) break;
+
+      // Yield the current batch of contacts
       yield batch;
+
+      // Increment offset for the next batch
       offset += options.batchSize ?? 0;
+
+      // If no batchSize is specified, stop to avoid infinite loop
+      //if (options.batchSize == null) break;
+
+      if (batch.length < (options.batchSize ?? 0)) break; // last batch
     }
   }
 
@@ -113,16 +128,16 @@ class MethodChannelContactsStack extends ContactsStackPlatform {
       'exportToVCard',
       contact.toMap(),
     );
-    return result ?? '';
+    return result ?? "";
   }
 
-  @override
-  Future<Contact?> importFromVCard(String vCardString) async {
-    final result = await _channel.invokeMethod<Map>('importFromVCard', {
-      'vCard': vCardString,
-    });
-    return result != null
-        ? Contact.fromMap(Map<String, dynamic>.from(result))
-        : null;
-  }
+  // @override
+  // Future<Contact?> importFromVCard(String vCardString) async {
+  //   final result = await _channel.invokeMethod<Map>('importFromVCard', {
+  //     'vCard': vCardString,
+  //   });
+  //   return result != null
+  //       ? Contact.fromMap(Map<String, dynamic>.from(result))
+  //       : null;
+  // }
 }

@@ -5,15 +5,12 @@ import android.app.Activity
 import android.content.ContentProviderOperation
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
-import android.util.Base64
-import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -24,16 +21,20 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
-import java.util.*
 import androidx.core.net.toUri
+import android.util.Base64
+import io.flutter.plugin.common.PluginRegistry
 
 
-class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
-    private lateinit var channel: MethodChannel
+class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
+    PluginRegistry.RequestPermissionsResultListener {
+
     private lateinit var context: Context
     private var activity: Activity? = null
     private var contentObserver: ContentObserver? = null
+    private lateinit var channel: MethodChannel
+    private var permissionResult: MethodChannel.Result? = null
+
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
@@ -42,6 +43,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+
         when (call.method) {
             "hasPermission" -> {
                 val hasPermission = ContextCompat.checkSelfPermission(
@@ -52,12 +54,20 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             }
 
             "requestPermission" -> {
-                ActivityCompat.requestPermissions(
-                    activity!!,
-                    arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS),
-                    1001
-                )
-                result.success(null)
+                val currentActivity = activity
+                if (currentActivity != null) {
+                    permissionResult = result
+                    ActivityCompat.requestPermissions(
+                        currentActivity,
+                        arrayOf(
+                            Manifest.permission.READ_CONTACTS,
+                            Manifest.permission.WRITE_CONTACTS
+                        ),
+                        1001
+                    )
+                } else {
+                    result.error("ACTIVITY_NULL", "Activity is null", null)
+                }
             }
 
 
@@ -72,14 +82,17 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     batchSize = batchSize,
                     offset = offset
                 )
+
                 result.success(contacts)
             }
 
             "getContactsLite" -> {
-                result.success(fetchContacts(
-                    withProperties = false,
-                    withPhoto = false, batchSize = 1000, offset = 0
-                ))
+                result.success(
+                    fetchContacts(
+                        withProperties = false,
+                        withPhoto = false, batchSize = 1000, offset = 0
+                    )
+                )
             }
 
             "getContactsFull" -> {
@@ -124,16 +137,16 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 result.success(id?.let { deleteContact(it) })
             }
 
-            "importVCard" -> {
-                val path = call.argument<String>("path")
-                if (path != null) {
-                    result.success(importVCard(path))
-                } else {
-                    result.error("INVALID_ARGUMENT", "Missing path to vCard", null)
-                }
-            }
+//            "importFromVCard" -> {
+//                val path = call.argument<String>("path")
+//                if (path != null) {
+//                    result.success(importVCard(path))
+//                } else {
+//                    result.error("INVALID_ARGUMENT", "Missing path to vCard", null)
+//                }
+//            }
 
-            "exportVCard" -> {
+            "exportToVCard" -> {
                 val id = call.argument<String>("id")
                 if (id != null) {
                     result.success(exportVCard(id))
@@ -178,81 +191,117 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        activity = binding.activity
-    }
-
-    override fun onDetachedFromActivityForConfigChanges() {
-        activity = null
-    }
-
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        activity = binding.activity
-    }
-
-    override fun onDetachedFromActivity() {
-        activity = null
-    }
-
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
-    }
-
     private fun startContactObserver() {
         if (contentObserver == null) {
             contentObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
                 override fun onChange(selfChange: Boolean) {
-                    channel.invokeMethod("onContactChanged", null)
+                    super.onChange(selfChange)
+
+                    val projection = arrayOf(
+                        ContactsContract.Contacts._ID,
+                        ContactsContract.Contacts.DISPLAY_NAME
+                    )
+
+                    val cursor = context.contentResolver.query(
+                        ContactsContract.Contacts.CONTENT_URI,
+                        projection,
+                        null,
+                        null,
+                        ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP + " DESC LIMIT 30" // We can adjust as needed
+                    )
+
+                    val contactList = mutableListOf<Map<String, String>>()
+
+                    cursor?.use {
+                        val idIndex = it.getColumnIndex(ContactsContract.Contacts._ID)
+                        val nameIndex = it.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
+
+                        while (it.moveToNext()) {
+                            if (idIndex != -1 && nameIndex != -1) {
+                                val id = it.getString(idIndex)
+                                val name = it.getString(nameIndex)
+                                contactList.add(mapOf("id" to id, "name" to name))
+                            }
+                        }
+                    }
+
+                    if (contactList.isNotEmpty()) {
+                        channel.invokeMethod("onContactChanged", contactList)
+                    }
                 }
             }
+
             context.contentResolver.registerContentObserver(
                 ContactsContract.Contacts.CONTENT_URI,
                 true,
-                contentObserver!!
+                contentObserver as ContentObserver
             )
         }
     }
 
     private fun stopContactObserver() {
         contentObserver?.let {
-            context.contentResolver.unregisterContentObserver(it)
+            context.contentResolver?.unregisterContentObserver(it)
             contentObserver = null
         }
     }
 
-    private fun exportVCard(contactId: String): Boolean {
+    fun exportVCard(contactId: String): String? {
         val resolver = context.contentResolver
-        val uri = Uri.withAppendedPath(
-            ContactsContract.Contacts.CONTENT_VCARD_URI,
-            contactId
+
+        val cursor = resolver.query(
+            ContactsContract.Contacts.CONTENT_URI,
+            arrayOf(ContactsContract.Contacts.LOOKUP_KEY),
+            "${ContactsContract.Contacts._ID} = ?",
+            arrayOf(contactId),
+            null
         )
-        return try {
-            val inputStream: InputStream? = resolver.openInputStream(uri)
-            if (inputStream != null) {
-                val file = File(context.cacheDir, "$contactId.vcf")
-                val output = FileOutputStream(file)
-                inputStream.copyTo(output)
-                inputStream.close()
-                output.close()
-                true
-            } else false
-        } catch (_: Exception) {
-            false
+
+        if (cursor != null && cursor.moveToFirst()) {
+            val lookupKey = cursor.getString(0)
+            cursor.close()
+
+            val uri = Uri.withAppendedPath(
+                ContactsContract.Contacts.CONTENT_VCARD_URI,
+                lookupKey
+            )
+
+            return try {
+                val tempFile = File(context.cacheDir, "$contactId.vcf")
+                resolver.openInputStream(uri)?.use { inputStream ->
+                    FileOutputStream(tempFile).use { output ->
+                        inputStream.copyTo(output)
+                    }
+                }
+
+                val outputFile = File(context.getExternalFilesDir(null), "$contactId.vcf")
+                tempFile.copyTo(outputFile, overwrite = true)
+
+                // Return the path so you can use it later
+                outputFile.absolutePath
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        } else {
+            cursor?.close()
+            return null
         }
     }
 
-    private fun importVCard(path: String): Boolean {
-        return try {
-            val uri = path.toUri()
-            val intent = Intent("com.android.contacts.action.IMPORT_VCARD")
-            intent.setDataAndType(uri, "text/x-vcard")
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            context.startActivity(intent)
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
+
+//    private fun importVCard(path: String): Boolean {
+//        return try {
+//            val uri = path.toUri()
+//            val intent = Intent("com.android.contacts.action.IMPORT_VCARD")
+//            intent.setDataAndType(uri, "text/x-vcard")
+//            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//            context.startActivity(intent)
+//            true
+//        } catch (_: Exception) {
+//            false
+//        }
+//    }
 
     private fun searchContacts(query: String): List<Map<String, Any?>> {
         val results = mutableListOf<Map<String, Any?>>()
@@ -353,7 +402,6 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         return suggestions
     }
 
-
     private fun getDeletedContacts(): List<Map<String, String>> {
         val deleted = mutableListOf<Map<String, String>>()
         val cursor = context.contentResolver.query(
@@ -377,7 +425,6 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         return deleted
     }
-
 
     private fun insertContact(data: Map<String, Any?>?): Boolean {
         if (data == null) return false
@@ -488,8 +535,9 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             projection,
             null,
             null,
-            "${ContactsContract.Contacts.DISPLAY_NAME} ASC LIMIT $batchSize OFFSET $offset"
+            "${ContactsContract.Contacts.DISPLAY_NAME} COLLATE NOCASE ASC LIMIT $batchSize OFFSET $offset"
         )
+
 
         cursor?.use {
             while (it.moveToNext()) {
@@ -515,6 +563,7 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 contacts.add(map)
             }
         }
+
         return contacts
     }
 
@@ -573,17 +622,126 @@ class ContactsStackPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         return null
     }
 
+//    private fun getContactById(id: String): Map<String, Any?>? {
+//        return fetchContacts(
+//            withProperties = true,
+//            withPhoto = true,
+//            batchSize = 1,
+//            offset = 0
+//        ).firstOrNull { it["id"] == id }
+//    }
+
     private fun getContactById(id: String): Map<String, Any?>? {
-        return fetchContacts(withProperties = true, withPhoto = true, batchSize = 1, offset = 0).firstOrNull { it["id"] == id }
+        val resolver = context.contentResolver
+
+        val contactUri = ContactsContract.Contacts.CONTENT_URI
+        val cursor = resolver.query(
+            contactUri,
+            null,
+            "${ContactsContract.Contacts._ID} = ?",
+            arrayOf(id),
+            null
+        )
+
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val contactId =
+                    it.getString(it.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
+                val displayName =
+                    it.getString(it.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME))
+
+                val phones = mutableListOf<String>()
+                val phoneCursor = resolver.query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    null,
+                    "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                    arrayOf(contactId),
+                    null
+                )
+                phoneCursor?.use { pc ->
+                    while (pc.moveToNext()) {
+                        val phone =
+                            pc.getString(pc.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                        phones.add(phone)
+                    }
+                }
+
+                val emails = mutableListOf<String>()
+                val emailCursor = resolver.query(
+                    ContactsContract.CommonDataKinds.Email.CONTENT_URI,
+                    null,
+                    "${ContactsContract.CommonDataKinds.Email.CONTACT_ID} = ?",
+                    arrayOf(contactId),
+                    null
+                )
+                emailCursor?.use { ec ->
+                    while (ec.moveToNext()) {
+                        val email =
+                            ec.getString(ec.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Email.ADDRESS))
+                        emails.add(email)
+                    }
+                }
+
+                // Fetch photo (if any)
+                val photoUri =
+                    it.getString(it.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_URI))
+                val photoBase64 = photoUri?.let { uri ->
+                    try {
+                        val inputStream = resolver.openInputStream(uri.toUri())
+                        val bytes = inputStream?.readBytes()
+                        inputStream?.close()
+                        bytes?.let { Base64.encodeToString(it, Base64.NO_WRAP) }
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+
+                return mapOf(
+                    "id" to contactId,
+                    "displayName" to displayName,
+                    "phones" to phones,
+                    "emails" to emails,
+                    "photo" to photoBase64
+                )
+            }
+        }
+
+        return null
     }
 
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        activity = null
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+
+    override fun onDetachedFromActivity() {
+        activity = null
+    }
+
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        channel.setMethodCallHandler(null)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ): Boolean {
+        if (requestCode == 1001) {
+            val granted =
+                grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            permissionResult?.success(granted)
+            permissionResult = null
+            return true
+        }
+        return false
+    }
 }
-
-
-
-
-
-
-
-
-

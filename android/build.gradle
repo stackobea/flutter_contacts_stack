@@ -26,7 +26,6 @@ apply plugin: "kotlin-android"
 
 android {
     namespace = "com.stackobea.flutter_contacts_stack"
-
     compileSdk = 35
 
     compileOptions {
@@ -40,7 +39,6 @@ android {
 
     sourceSets {
         main.java.srcDirs += "src/main/kotlin"
-        test.java.srcDirs += "src/test/kotlin"
     }
 
     defaultConfig {
@@ -48,15 +46,6 @@ android {
     }
 
     dependencies {
-
-
-        implementation ('androidx.core:core-ktx:1.16.0')
-
-
-
-        testImplementation("org.jetbrains.kotlin:kotlin-test")
-
+      
     }
-
-
 }
