@@ -47,7 +47,7 @@ Built for speed, reliability, and modern app needs—capable of handling 5000+ c
 
 ```yaml
 dependencies:
-  flutter_contacts_stack: ^1.0.0
+  flutter_contacts_stack: ^<latest-version>
 ```
 
 Then Run
