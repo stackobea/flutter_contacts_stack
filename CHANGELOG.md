@@ -1,7 +1,11 @@
+## [1.0.1]
+
+- Dart format
 
 ## [1.0.0] - 2025-08-07
 
 ### Added
+
 - Light and full contact fetching (with optional photo, email, phone, etc.)
 - Pagination and streaming-based contact loading for large datasets
 - Fetch contact by ID
