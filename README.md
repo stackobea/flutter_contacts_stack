@@ -1,4 +1,10 @@
-# flutter_contacts_stack
+# Flutter Contacts
+
+[![Pub Version](https://img.shields.io/pub/v/flutter_contacts_stack)](https://pub.dev/packages/flutter_contacts_stack)
+[![Pub Likes](https://img.shields.io/pub/likes/flutter_contacts_stack)](https://pub.dev/packages/flutter_contacts_stack)
+[![Pub Points](https://img.shields.io/pub/points/flutter_contacts_stack)](https://pub.dev/packages/flutter_contacts_stack)
+[![Popularity](https://img.shields.io/pub/popularity/flutter_contacts_stack)](https://pub.dev/packages/flutter_contacts_stack)
+
 
 A full-featured, cross-platform Flutter plugin to manage contacts on Android and iOS devices.  
 Built for speed, reliability, and modern app needs—capable of handling 5000+ contacts seamlessly.
@@ -38,6 +44,7 @@ Built for speed, reliability, and modern app needs—capable of handling 5000+ c
 
 ## 🚀 Installation
 
+
 ```yaml
 dependencies:
   flutter_contacts_stack: ^1.0.0
@@ -50,4 +57,105 @@ flutter pub get
 ```
 
 
+## 🛠️ Permissions
+
+**Android:**
+Add to AndroidManifest.xml:
+
+```xml
+<uses-permission android:name="android.permission.READ_CONTACTS"/>
+<uses-permission android:name="android.permission.WRITE_CONTACTS"/>
+<uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+```
+
+**iOS:**
+Add to Info.plist:
+```xml
+<key>NSContactsUsageDescription</key>
+<string>This app uses contacts to manage your address book.</string>
+```
+
+
+## 📦 Usage
+
+```dart
+import 'package:flutter_contacts_stack/flutter_contacts_stack.dart';
+
+// Check permission
+await FlutterContactsStack.requestPermission();
+
+// Fetch all contacts (light)
+final contacts = await FlutterContactsStack.fetchContacts();
+
+// Fetch fully with properties
+final result = await FlutterContactsStack.fetchContacts(
+const ContactFetchOptions(
+withPhoto: true,
+withProperties: true,
+offset: 0,
+batchSize: 100,
+)
+);
+// Stream Fetch
+FlutterContactsStack.streamContacts(options);
+
+// Insert a contact
+final newContact = Contact(
+givenName: 'Titto',
+familyName: 'Stack',
+phones: ['1234567890'],
+);
+await FlutterContactsStack.insertContact(newContact);
+
+// Export as vCard
+final vcard = await FlutterContactsStack.exportToVCard(contactId);
+
+// Import from vCard
+final contact = await FlutterContactsStack.importFromVCard(vcard);
+```
+
+
+## 📲 Observing Contact Changes
+```dart
+FlutterContactsStack.startListeningToContactChanges((contacts) {
+  for (var contact in contacts) {
+    if (kDebugMode) {
+      print('Updated: ${contact.displayName}');
+    }
+  }
+});
+```
+
+## 📇 Insert a Contact
+```dart
+final contact = Contact(
+displayName: "Titto Stack",
+phones: [Phone("1234567890")],
+emails: [Email("titto@example.com")],
+);
+await plugin.insertContact(contact);
+```
+
+
+## 📚 vCard Support
+*exportToVCard(contactId) – Exports a contact to .vcf format*
+*importFromVCard(String) – Parses vCard string and adds to contacts*
+
+
+
+## 🔍 TODO (Future Updates)
+Support for contact favorites
+
+⚫ Cross-device sync layer
+⚫ Deleted contact recovery (iOS workaround)
+⚫ Custom contact field support
+
+
+
+## 💬 Feedback
+Pull requests and issues are welcome on GitHub.
+
+
+## 👨‍💻 Contributing
+Pull requests are welcome. Please ensure any changes maintain cross-platform compatibility and are tested.
 

@@ -3,8 +3,8 @@ description: "A powerful and high-performance Flutter plugin to access, modify, 
 version: 1.0.0
 homepage: https://github.com/stackobea/flutter_contacts_stack
 repository: https://github.com/stackobea/flutter_contacts_stack
-issue_tracker: https://github.com/stackobea/flutter_contacts_stack/issues
 documentation: https://github.com/stackobea/flutter_contacts_stack
+issue_tracker: https://github.com/stackobea/flutter_contacts_stack/issues
 
 environment:
   sdk: ^3.8.1
