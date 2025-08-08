@@ -139,24 +139,23 @@ await plugin.insertContact(contact);
 
 
 ## 📚 vCard Support
-*exportToVCard(contactId) – Exports a contact to .vcf format*  
-*importFromVCard(String) – Parses vCard string and adds to contacts*
+*exportToVCard(contactId) – Exports a contact to .vcf format*    
 
 
 
 ## 🔍 TODO (Future Updates)
 Support for contact favorites
 
+⚫ importFromVCard
 ⚫ Cross-device sync layer  
 ⚫ Deleted contact recovery (iOS workaround)  
-⚫ Custom contact field support
+⚫ Custom contact field support    
 
 
 
 ## 💬 Feedback
-Pull requests and issues are welcome on GitHub.
+Pull requests and issues are welcome on GitHub.  
 
 
 ## 👨‍💻 Contributing
 Pull requests are welcome. Please ensure any changes maintain cross-platform compatibility and are tested.
-
