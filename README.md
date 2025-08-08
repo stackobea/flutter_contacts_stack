@@ -89,21 +89,22 @@ final contacts = await FlutterContactsStack.fetchContacts();
 
 // Fetch fully with properties
 final result = await FlutterContactsStack.fetchContacts(
-const ContactFetchOptions(
-withPhoto: true,
-withProperties: true,
-offset: 0,
-batchSize: 100,
-)
+  const ContactFetchOptions(
+    withPhoto: true,
+    withProperties: true,
+    offset: 0,
+    batchSize: 100,
+  )
 );
+
 // Stream Fetch
 FlutterContactsStack.streamContacts(options);
 
 // Insert a contact
 final newContact = Contact(
-givenName: 'Titto',
-familyName: 'Stack',
-phones: ['1234567890'],
+  givenName: 'Titto',
+  familyName: 'Stack',
+  phones: ['1234567890'],
 );
 await FlutterContactsStack.insertContact(newContact);
 
@@ -130,15 +131,15 @@ FlutterContactsStack.startListeningToContactChanges((contacts) {
 ```dart
 final contact = Contact(
 displayName: "Titto Stack",
-phones: [Phone("1234567890")],
-emails: [Email("titto@example.com")],
+phones: ["1234567890", "9090909090"],
+emails: ["titto@example.com", "titto.contact@example.com"],
 );
 await plugin.insertContact(contact);
 ```
 
 
 ## 📚 vCard Support
-*exportToVCard(contactId) – Exports a contact to .vcf format*
+*exportToVCard(contactId) – Exports a contact to .vcf format*  
 *importFromVCard(String) – Parses vCard string and adds to contacts*
 
 
@@ -146,8 +147,8 @@ await plugin.insertContact(contact);
 ## 🔍 TODO (Future Updates)
 Support for contact favorites
 
-⚫ Cross-device sync layer
-⚫ Deleted contact recovery (iOS workaround)
+⚫ Cross-device sync layer  
+⚫ Deleted contact recovery (iOS workaround)  
 ⚫ Custom contact field support
 
 
