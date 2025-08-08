@@ -146,7 +146,7 @@ await plugin.insertContact(contact);
 ## 🔍 TODO (Future Updates)
 Support for contact favorites
 
-⚫ importFromVCard
+⚫ importFromVCard  
 ⚫ Cross-device sync layer  
 ⚫ Deleted contact recovery (iOS workaround)  
 ⚫ Custom contact field support    
