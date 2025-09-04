@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import Contacts
+import ContactsUI
 
 public class FlutterContactsStackPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 

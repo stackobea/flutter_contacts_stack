@@ -1,3 +1,7 @@
+## [1.0.2]
+
+- Fixed ContactsUI issue for iOS
+
 ## [1.0.1]
 
 - Dart format
