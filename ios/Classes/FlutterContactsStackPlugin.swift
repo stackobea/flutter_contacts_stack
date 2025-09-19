@@ -69,10 +69,28 @@ public class FlutterContactsStackPlugin: NSObject, FlutterPlugin, FlutterStreamH
         ]
         var contactsArray: [[String: Any]] = []
 
+        // Parse batchSize and offset from args
+        var batchSize = 100
+        var offset = 0
+        if let dict = args as? [String: Any] {
+            if let bs = dict["batchSize"] as? Int { batchSize = bs }
+            if let off = dict["offset"] as? Int { offset = off }
+        }
+
         let request = CNContactFetchRequest(keysToFetch: keys)
+        var currentIndex = 0
         do {
-            try contactStore.enumerateContacts(with: request) { contact, _ in
-                contactsArray.append(self.serializeContact(contact))
+            try contactStore.enumerateContacts(with: request) { contact, stop in
+                if currentIndex < offset {
+                    currentIndex += 1
+                    return
+                }
+                if contactsArray.count < batchSize {
+                    contactsArray.append(self.serializeContact(contact))
+                } else {
+                    stop.pointee = true
+                }
+                currentIndex += 1
             }
             result(contactsArray)
         } catch {
