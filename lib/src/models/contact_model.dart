@@ -51,6 +51,7 @@ class Contact {
   }
 
   factory Contact.fromMap(Map<String, dynamic> map) {
+
     List<String> listStringFrom(List<dynamic> list) {
       if (list.isEmpty) return [];
       return list
