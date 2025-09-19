@@ -1,3 +1,8 @@
+## [1.0.3]
+
+- Refactor phone and email mapping in Contact model
+- Implement batch size and offset for contact retrieval
+
 ## [1.0.2]
 
 - Fixed ContactsUI issue for iOS

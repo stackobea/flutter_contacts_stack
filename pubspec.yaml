@@ -1,6 +1,6 @@
 name: flutter_contacts_stack
 description: "A powerful and high-performance Flutter plugin to access, modify, and manage device contacts across Android and iOS."
-version: 1.0.2
+version: 1.0.3
 homepage: https://github.com/stackobea/flutter_contacts_stack
 repository: https://github.com/stackobea/flutter_contacts_stack
 documentation: https://github.com/stackobea/flutter_contacts_stack
