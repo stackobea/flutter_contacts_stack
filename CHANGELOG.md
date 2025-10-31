@@ -1,3 +1,7 @@
+## [1.0.4]
+
+- Upgraded the version
+
 ## [1.0.3]
 
 - Refactor phone and email mapping in Contact model
