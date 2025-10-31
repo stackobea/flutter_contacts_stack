@@ -51,7 +51,6 @@ class Contact {
   }
 
   factory Contact.fromMap(Map<String, dynamic> map) {
-
     List<String> listStringFrom(List<dynamic> list) {
       if (list.isEmpty) return [];
       return list
@@ -63,7 +62,7 @@ class Contact {
           .whereType<String>()
           .toList();
     }
-    
+
     return Contact(
       id: map['id'],
       displayName: map['displayName'],
@@ -72,7 +71,7 @@ class Contact {
       familyName: map['familyName'],
       prefix: map['prefix'],
       suffix: map['suffix'],
-      phones:listStringFrom(map['phones'] ?? []),
+      phones: listStringFrom(map['phones'] ?? []),
       emails: listStringFrom(map['emails'] ?? []),
       company: map['company'],
       jobTitle: map['jobTitle'],
